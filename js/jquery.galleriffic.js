@@ -6,10 +6,10 @@
 *   http://www.opensource.org/licenses/mit-license.php
 *
 * Much thanks to primary contributer Ponticlaro (http://www.ponticlaro.com)
- *
- * Modifed by
- *   Dennis Becker (http://gooof.de)
- *   Jay Hayes (http://iamvery.com)
+*
+* Modifed by
+*   Dennis Becker (http://gooof.de)
+*   Jay Hayes (http://iamvery.com)
 */
 ;(function($) {
 	// Globally keep track of all images by their unique hash.  Each item is an image data object.
@@ -299,8 +299,7 @@
 
 			// Initalizes the image preloader
 			preloadInit: function() {
-				// if there are no images initially, then currentImage is null
-				if (this.preloadAhead == 0 || !this.currentImage) return this;
+				if (this.preloadAhead == 0) return this;
 
 				this.preloadStartIndex = this.currentImage.index;
 				var nextIndex = this.getNextIndex(this.preloadStartIndex);
@@ -364,7 +363,7 @@
 					thumb.alt = thumbData.title;
 					thumb.src = thumbData.thumbUrl;
 
-						gallery.preloadNextThumb(startIndex, currentIndex);
+					gallery.preloadNextThumb(startIndex, currentIndex);
 
 					return this;
 				}
@@ -436,8 +435,6 @@
 				image.onload = function() {
 					imageData.image = this;
 				};
-				//image.onerror = function() {
-				//};
 				image.id = "bigImage";
 				image.alt = imageData.title;
 				image.src = imageData.slideUrl;
@@ -613,11 +610,7 @@
 			gotoImage: function(imageData) {
 				var index = imageData.index;
 
-				// Prevent reloading same image
-				if (this.currentImage && this.currentImage.index == index)
-					return this;
-
-				if (this.onSlideChange && this.currentImage)
+				if (this.onSlideChange)
 					this.onSlideChange(this.currentImage.index, index);
 
 				this.currentImage = imageData;
@@ -802,9 +795,9 @@
 
 			// Returns the current page index that should be shown for the currentImage
 			getCurrentPage: function() {
-                if (!this.currentImage) {
-                    return 0;
-                }
+				if (!this.currentImage) {
+					return 0;
+				}
 				return Math.floor(this.currentImage.index / this.numThumbs);
 			},
 
@@ -882,9 +875,9 @@
 						this.buildPager($bottomPager);
 				}
 
-                var page = 0;
-                if (this.currentImage !== null)
-				    var page = this.getCurrentPage();
+				var page = 0;
+				if (this.currentImage !== null)
+					var page = this.getCurrentPage();
 				var startIndex = page*this.numThumbs;
 				var stopIndex = startIndex+this.numThumbs-1;
 				if (stopIndex >= this.data.length)
@@ -1018,11 +1011,7 @@
 			this.maxPagesToShow = 3;
 
 		this.displayedPage = -1;
-        // if no initial images, then currentImage is null
-        if (this.data.length > 0)
-		    this.currentImage = this.data[0];
-        else
-            this.currentImage = null;
+		this.currentImage = this.data[0];
 		var gallery = this;
 
 		// Hide the loadingContainer
@@ -1034,13 +1023,13 @@
 			this.$controlsSSContainer = $(this.controlsSSContainerSel).empty();
 
 				if (this.autoStart) {
-			  var html = this.pauseLinkHTML ? this.pauseLinkHTML : this.pauseLinkText;
-				this.$controlsSSContainer
-					.append('<div class="ss-controls"><a href="#pause" class="pause" title="'+this.pauseLinkText+'">'+html+'</a></div>');
+					var html = this.pauseLinkHTML ? this.pauseLinkHTML : this.pauseLinkText;
+					this.$controlsSSContainer
+						.append('<div class="ss-controls"><a href="#pause" class="pause" title="'+this.pauseLinkText+'">'+html+'</a></div>');
 				} else {
-			var html = this.playLinkHTML ? this.playLinkHTML : this.playLinkText;
-				this.$controlsSSContainer
-					.append('<div class="ss-controls"><a href="#play" class="play" title="'+this.playLinkText+'">'+html+'</a></div>');
+					var html = this.playLinkHTML ? this.playLinkHTML : this.playLinkText;
+					this.$controlsSSContainer
+						.append('<div class="ss-controls"><a href="#play" class="play" title="'+this.playLinkText+'">'+html+'</a></div>');
 				}
 
 			this.$controlsSSContainer.find('div.ss-controls a')
