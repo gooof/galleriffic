@@ -1,14 +1,16 @@
 /**
- * jQuery Galleriffic plugin
+* jQuery Galleriffic plugin
+*
+* Copyright (c) 2008 Trent Foley (http://trentacular.com)
+* Licensed under the MIT License:
+*   http://www.opensource.org/licenses/mit-license.php
+*
+* Much thanks to primary contributer Ponticlaro (http://www.ponticlaro.com)
  *
- * Copyright (c) 2008 Trent Foley (http://trentacular.com)
- * Licensed under the MIT License:
- *   http://www.opensource.org/licenses/mit-license.php
- *
- * Much thanks to primary contributer Ponticlaro (http://www.ponticlaro.com)
- *
- * Modifed by Jay Hayes (http://iamvery.com)
- */
+ * Modifed by
+ *   Dennis Becker (http://gooof.de)
+ *   Jay Hayes (http://iamvery.com)
+*/
 ;(function($) {
 	// Globally keep track of all images by their unique hash.  Each item is an image data object.
 	var allImages = {};
@@ -16,7 +18,7 @@
 
 	// Galleriffic static class
 	$.galleriffic = {
-		version: '2.0.3',
+		version: '2.0.3.1',
 
 		// Strips invalid characters and any leading # characters
 		normalizeHash: function(hash) {
@@ -41,7 +43,7 @@
 
 			var gallery = imageData.gallery;
 			gallery.gotoImage(imageData);
-			
+
 			return true;
 		},
 
@@ -66,35 +68,45 @@
 	};
 
 	var defaults = {
-		delay:                     3000,
-		numThumbs:                 20,
-		preloadAhead:              40, // Set to -1 to preload all images
-		enableTopPager:            false,
-		enableBottomPager:         true,
-		maxPagesToShow:            7,
-		imageContainerSel:         '',
-		captionContainerSel:       '',
-		ssControlsContainerSel:    '',
-		navControlsContainerSel:   '',
-		loadingContainerSel:       '',
-		playLinkText:              'Play',
-		pauseLinkText:             'Pause',
-		prevLinkText:              'Previous',
-		nextLinkText:              'Next',
-		nextPageLinkText:          'Next &rsaquo;',
-		prevPageLinkText:          '&lsaquo; Prev',
-		enableHistory:             false,
-		enableKeyboardNavigation:  true,
-		autoStart:                 false,
-		syncTransitions:           false,
-		defaultTransitionDuration: 1000,
-		onSlideChange:             undefined, // accepts a delegate like such: function(prevIndex, nextIndex) { ... }
-		onTransitionOut:           undefined, // accepts a delegate like such: function(slide, caption, isSync, callback) { ... }
-		onTransitionIn:            undefined, // accepts a delegate like such: function(slide, caption, isSync) { ... }
-		onPageTransitionOut:       undefined, // accepts a delegate like such: function(callback) { ... }
-		onPageTransitionIn:        undefined, // accepts a delegate like such: function() { ... }
-		onImageAdded:              undefined, // accepts a delegate like such: function(imageData, $li) { ... }
-		onImageRemoved:            undefined  // accepts a delegate like such: function(imageData, $li) { ... }
+		delay: 500,
+		numThumbs: 20,
+		preloadAhead: -1, // Set to -1 to preload all images
+		enableTopPager: false,
+		enableBottomPager: true,
+		maxPagesToShow: 7,
+		imageContainerSel: '',
+		captionContainerSel: '',
+		controlsSSContainerSel:    '',
+		controlsPrevContainerSel:  '',
+		controlsNextContainerSel:  '',
+		loadingContainerSel: '',
+		playLinkText: 'Play',
+		playLinkHTML:              '',
+		pauseLinkText: 'Pause',
+		pauseLinkHTML:             '',
+		prevLinkText: 'Previous',
+		prevLinkHTML:              '',
+		nextLinkText: 'Next',
+		nextLinkHTML:              '',
+		nextPageLinkText: 'Next &rsaquo;',
+		nextPageLinkHTML:          '',
+		prevPageLinkText: '&lsaquo; Prev',
+		prevPageLinkHTML:          '',
+		enableHistory: false,
+		enableKeyboardNavigation: true,
+		autoStart: false,
+		syncTransitions: false,
+		defaultTransitionDuration: 500,
+		onSlideChange: undefined, // accepts a delegate like such: function(prevIndex, nextIndex) { ... }
+		onTransitionOut: undefined, // accepts a delegate like such: function(slide, caption, isSync, callback) { ... }
+		onTransitionIn: undefined, // accepts a delegate like such: function(slide, caption, isSync) { ... }
+		onPageTransitionOut: undefined, // accepts a delegate like such: function(callback) { ... }
+		onPageTransitionIn: undefined, // accepts a delegate like such: function() { ... }
+		onImageAdded: undefined, // accepts a delegate like such: function(imageData, $li) { ... }
+		onImageRemoved: undefined,  // accepts a delegate like such: function(imageData, $li) { ... }
+		startImage: 1, // defines the thumbnail to go to on page load
+		pagesOfThumbsToPreload: 2, // defines how many pages of thumbs to preload
+		repeatSlideShow: false // slideshow loops around once.
 	};
 
 	// Primary Galleriffic initialization function that should be called on the thumbnail container.
@@ -141,7 +153,9 @@
 			// @param {Boolean} insert Specifies whether the the image is appended to the end or inserted into the gallery.
 			// @param {Integer} position The index within the gallery where the item shouold be added.
 			addImage: function(listItem, thumbExists, insert, position) {
-				var $li = ( typeof listItem === "string" ) ? $(listItem) : listItem;				
+				var $li = (typeof listItem === "string") ? $(listItem) : listItem;
+				var thumbUrl = $li.find('img').attr('ajax-data');
+				var thumbId = $li.find('img').attr('id');
 				var $aThumb = $li.find('a.thumb');
 				var slideUrl = $aThumb.attr('href');
 				var title = $aThumb.attr('title');
@@ -152,21 +166,23 @@
 				imageCounter++;
 
 				// Autogenerate a hash value if none is present or if it is a duplicate
-				if (!hash || allImages[''+hash]) {
+				if (!hash || allImages['' + hash]) {
 					hash = imageCounter;
 				}
 
 				// Set position to end when not specified
 				if (!insert)
 					position = this.data.length;
-				
+
 				var imageData = {
-					title:title,
-					slideUrl:slideUrl,
-					caption:$caption,
-					hash:hash,
-					gallery:this,
-					index:position
+					thumbUrl: thumbUrl,
+					thumbId: thumbId,
+					title: title,
+					slideUrl: slideUrl,
+					caption: $caption,
+					hash: hash,
+					gallery: this,
+					index: position
 				};
 
 				// Add the imageData to this gallery's array of images
@@ -188,10 +204,10 @@
 					this.updateThumbs(function() {
 						var $thumbsUl = gallery.find('ul.thumbs');
 						if (insert)
-							$thumbsUl.children(':eq('+position+')').before($li);
+							$thumbsUl.children(':eq(' + position + ')').before($li);
 						else
 							$thumbsUl.append($li);
-						
+
 						if (gallery.onImageAdded)
 							gallery.onImageAdded(imageData, $li);
 					});
@@ -216,13 +232,13 @@
 			removeImageByIndex: function(index) {
 				if (index < 0 || index >= this.data.length)
 					return false;
-				
+
 				var imageData = this.data[index];
 				if (!imageData)
 					return false;
-				
+
 				this.removeImage(imageData);
-				
+
 				return true;
 			},
 
@@ -234,17 +250,17 @@
 			// Removes an image from the gallery.
 			removeImage: function(imageData) {
 				var index = imageData.index;
-				
+
 				// Remove the image from the gallery data array
 				this.data.splice(index, 1);
-				
+
 				// Remove the global registration
-				delete allImages[''+imageData.hash];
-				
+				delete allImages['' + imageData.hash];
+
 				// Remove the image's list item from the DOM
 				this.updateThumbs(function() {
 					var $li = gallery.find('ul.thumbs')
-						.children(':eq('+index+')')
+						.children(':eq(' + index + ')')
 						.remove();
 
 					if (gallery.onImageRemoved)
@@ -262,7 +278,7 @@
 				for (i = startIndex; i < this.data.length; i++) {
 					this.data[i].index = i;
 				}
-				
+
 				return this;
 			},
 
@@ -279,14 +295,96 @@
 			},
 
 			isPreloadComplete: false,
+			isPreloadCompleteThumb: false,
 
 			// Initalizes the image preloader
 			preloadInit: function() {
-				if (this.preloadAhead == 0) return this;
-				
+				// if there are no images initially, then currentImage is null
+				if (this.preloadAhead == 0 || !this.currentImage) return this;
+
 				this.preloadStartIndex = this.currentImage.index;
 				var nextIndex = this.getNextIndex(this.preloadStartIndex);
 				return this.preloadRecursive(this.preloadStartIndex, nextIndex);
+			},
+
+			preloadInitThumbs: function() {
+				// Have to preload all the thumbs on a page, even if we jump to the middle
+				// of that page. Figure out where this page actually starts and set start index
+				var placementOnPage = this.currentImage.index % this.numThumbs;
+				this.preloadStartIndexThumbs = this.currentImage.index - placementOnPage - 1;
+				var nextIndex = this.getNextIndex(this.preloadStartIndexThumbs);
+				return this.preloadRecursiveThumbs(this.preloadStartIndexThumbs, nextIndex);
+			},
+
+			// Recursive function that performs the image preloading
+			// @param {Integer} startIndex The index of the first image the current preloader started on.
+			// @param {Integer} currentIndex The index of the current image to preload.
+			preloadRecursiveThumbs: function(startIndex, currentIndex) {
+				// Check if startIndex has been relocated
+				if (startIndex != this.preloadStartIndexThumbs) {
+					var nextIndex = this.getNextIndex(this.preloadStartIndexThumbs);
+					return this.preloadRecursiveThumbs(this.preloadStartIndexThumbs, nextIndex);
+				}
+
+				var gallery = this;
+
+				// Now check for preloadAhead count
+				var preloadCount = currentIndex - startIndex;
+				if (preloadCount < 0)
+					preloadCount = this.data.length - 1 - startIndex + currentIndex;
+
+				var preloadThumbsAhead = this.numThumbs * this.pagesOfThumbsToPreload;
+				if (preloadThumbsAhead >= 0 && preloadCount > preloadThumbsAhead) {
+					// Do this in order to keep checking for relocated start index
+					setTimeout(function() { gallery.preloadRecursiveThumbs(startIndex, currentIndex); }, 1000);
+					return this;
+				}
+
+				var thumbData = this.data[currentIndex];
+				if (!thumbData)
+					return this;
+
+				$('#' + thumbData.thumbId).attr('src', thumbData.thumbUrl);
+				// If already loaded, continue
+				if (thumbData.thumb) {
+					return this.preloadNextThumb(startIndex, currentIndex);
+				}
+				else {
+					// Preload the image
+					//console.log('#g: image loaded: ' + thumbData.thumbUrl);
+
+					var thumb = new Image();
+					thumb.onload = function() {
+						thumbData.thumb = this;
+					};
+					// error handling
+					thumb.onerror = function() {
+					};
+
+					thumb.alt = thumbData.title;
+					thumb.src = thumbData.thumbUrl;
+
+						gallery.preloadNextThumb(startIndex, currentIndex);
+
+					return this;
+				}
+
+			},
+
+			// Called by preloadRecursive in order to preload the next image after the previous has loaded.
+			// @param {Integer} startIndex The index of the first image the current preloader started on.
+			// @param {Integer} currentIndex The index of the current image to preload.
+			preloadNextThumb: function(startIndex, currentIndex) {
+				var nextIndex = this.getNextIndex(currentIndex);
+				if (nextIndex == startIndex) {
+					this.isPreloadCompleteThumb = true;
+				} else {
+					// Use setTimeout to free up thread
+					var gallery = this;
+					setTimeout(function() { gallery.preloadRecursiveThumbs(startIndex, nextIndex); }, 100);
+				}
+
+				return this;
 			},
 
 			// Changes the location in the gallery the preloader should work
@@ -294,6 +392,11 @@
 			preloadRelocate: function(index) {
 				// By changing this startIndex, the current preload script will restart
 				this.preloadStartIndex = index;
+				return this;
+			},
+			preloadRelocateThumbs: function(index) {
+				// By changing this startIndex, the current preload script will restart
+				this.preloadStartIndexThumbs = index - 1;
 				return this;
 			},
 
@@ -312,10 +415,10 @@
 				// Now check for preloadAhead count
 				var preloadCount = currentIndex - startIndex;
 				if (preloadCount < 0)
-					preloadCount = this.data.length-1-startIndex+currentIndex;
+					preloadCount = this.data.length - 1 - startIndex + currentIndex;
 				if (this.preloadAhead >= 0 && preloadCount > this.preloadAhead) {
 					// Do this in order to keep checking for relocated start index
-					setTimeout(function() { gallery.preloadRecursive(startIndex, currentIndex); }, 500);
+					setTimeout(function() { gallery.preloadRecursive(startIndex, currentIndex); }, 300);
 					return this;
 				}
 
@@ -325,22 +428,25 @@
 
 				// If already loaded, continue
 				if (imageData.image)
-					return this.preloadNext(startIndex, currentIndex); 
-				
+					return this.preloadNext(startIndex, currentIndex);
+
 				// Preload the image
 				var image = new Image();
-				
+
 				image.onload = function() {
 					imageData.image = this;
-					gallery.preloadNext(startIndex, currentIndex);
 				};
-
+				//image.onerror = function() {
+				//};
+				image.id = "bigImage";
 				image.alt = imageData.title;
 				image.src = imageData.slideUrl;
 
+				gallery.preloadNext(startIndex, currentIndex);
+
 				return this;
 			},
-			
+
 			// Called by preloadRecursive in order to preload the next image after the previous has loaded.
 			// @param {Integer} startIndex The index of the first image the current preloader started on.
 			// @param {Integer} currentIndex The index of the current image to preload.
@@ -360,7 +466,7 @@
 			// Safe way to get the next image index relative to the current image.
 			// If the current image is the last, returns 0
 			getNextIndex: function(index) {
-				var nextIndex = index+1;
+				var nextIndex = index + 1;
 				if (nextIndex >= this.data.length)
 					nextIndex = 0;
 				return nextIndex;
@@ -369,9 +475,9 @@
 			// Safe way to get the previous image index relative to the current image.
 			// If the current image is the first, return the index of the last image in the gallery.
 			getPrevIndex: function(index) {
-				var prevIndex = index-1;
+				var prevIndex = index - 1;
 				if (prevIndex < 0)
-					prevIndex = this.data.length-1;
+					prevIndex = this.data.length - 1;
 				return prevIndex;
 			},
 
@@ -383,14 +489,15 @@
 					this.slideshowTimeout = undefined;
 				}
 
-				if (this.$ssControlsContainer) {
-					this.$ssControlsContainer
+				if (this.$controlsSSContainer) {
+				  var html = this.playLinkHTML ? this.playLinkHTML : this.playLinkText;
+					this.$controlsSSContainer
 						.find('div.ss-controls a').removeClass().addClass('play')
 						.attr('title', this.playLinkText)
 						.attr('href', '#play')
-						.html(this.playLinkText);
+						.html(html);
 				}
-				
+
 				return this;
 			},
 
@@ -398,12 +505,13 @@
 			play: function() {
 				this.isSlideshowRunning = true;
 
-				if (this.$ssControlsContainer) {
-					this.$ssControlsContainer
+				if (this.$controlsSSContainer) {
+				  var html = this.pauseLinkHTML ? this.pauseLinkHTML : this.pauseLinkText;
+					this.$controlsSSContainer
 						.find('div.ss-controls a').removeClass().addClass('pause')
 						.attr('title', this.pauseLinkText)
 						.attr('href', '#pause')
-						.html(this.pauseLinkText);
+						.html(html);
 				}
 
 				if (!this.slideshowTimeout) {
@@ -472,10 +580,10 @@
 				var page = this.getCurrentPage();
 				if (page > 0) {
 					var startIndex = page * this.numThumbs;
-					var prevPage = startIndex - this.numThumbs;				
+					var prevPage = startIndex - this.numThumbs;
 					this.gotoIndex(prevPage, dontPause, bypassHistory);
 				}
-				
+
 				return this;
 			},
 
@@ -486,12 +594,12 @@
 			gotoIndex: function(index, dontPause, bypassHistory) {
 				if (!dontPause)
 					this.pause();
-				
+
 				if (index < 0) index = 0;
-				else if (index >= this.data.length) index = this.data.length-1;
-				
+				else if (index >= this.data.length) index = this.data.length - 1;
+
 				var imageData = this.data[index];
-				
+
 				if (!bypassHistory && this.enableHistory)
 					$.history.load(String(imageData.hash));  // At the moment, history.load only accepts string arguments
 				else
@@ -511,12 +619,13 @@
 
 				if (this.onSlideChange && this.currentImage)
 					this.onSlideChange(this.currentImage.index, index);
-				
+
 				this.currentImage = imageData;
 				this.preloadRelocate(index);
-				
+				this.preloadRelocateThumbs(index);
+
 				this.refresh();
-				
+
 				return this;
 			},
 
@@ -538,9 +647,12 @@
 				var index = imageData.index;
 
 				// Update Controls
-				if (this.$navControlsContainer) {
-					this.$navControlsContainer
-						.find('div.nav-controls a.prev').attr('href', '#'+this.data[this.getPrevIndex(index)].hash).end()
+				if (this.$controlsPrevContainer) {
+					this.$controlsPrevContainer
+						.find('div.nav-controls a.prev').attr('href', '#'+this.data[this.getPrevIndex(index)].hash);
+					}
+				if (this.$controlsNextContainer) {
+					this.$controlsNextContainer
 						.find('div.nav-controls a.next').attr('href', '#'+this.data[this.getNextIndex(index)].hash);
 				}
 
@@ -600,7 +712,7 @@
 
 				if (!imageData.image) {
 					var image = new Image();
-					
+
 					// Wire up mainImage onload event
 					image.onload = function() {
 						imageData.image = this;
@@ -614,6 +726,19 @@
 					// set alt and src
 					image.alt = imageData.title;
 					image.src = imageData.slideUrl;
+				}
+
+				if (!imageData.thumb) {
+					var thumb = new Image();
+
+					// Wire up mainImage onload event
+					thumb.onload = function() {
+						imageData.thumb = this;
+					};
+
+					// set alt and src
+					thumb.alt = imageData.title;
+					thumb.src = (!imageData.thumbUrl) ? 'http://img.userboard.org/images/spacer.gif' : imageData.thumbUrl;
 				}
 
 				// This causes the preloader (if still running) to relocate out from the currentIndex
@@ -636,10 +761,11 @@
 					.find('span.current').css('opacity', '0');
 				
 				newSlide.find('a')
-					.append(imageData.image)
-					.click(function(e) {
-						gallery.clickHandler(e, this);
-					});
+					.append(imageData.image);
+					// disable main image click, double clicking causes rendering issues
+					// .click(function(e) {
+					// 	gallery.clickHandler(e, this);
+					// });
 				
 				var newCaption = 0;
 				if (this.$captionContainer) {
@@ -663,7 +789,7 @@
 					if (newCaption)
 						newCaption.fadeTo(this.getDefaultTransitionDuration(isSync), 1.0);
 				}
-				
+
 				if (this.isSlideshowRunning) {
 					if (this.slideshowTimeout)
 						clearTimeout(this.slideshowTimeout);
@@ -676,6 +802,9 @@
 
 			// Returns the current page index that should be shown for the currentImage
 			getCurrentPage: function() {
+                if (!this.currentImage) {
+                    return 0;
+                }
 				return Math.floor(this.currentImage.index / this.numThumbs);
 			},
 
@@ -704,7 +833,7 @@
 					// Call the Post-transition Out Handler
 					if (postTransitionOutHandler)
 						postTransitionOutHandler();
-					
+
 					gallery.rebuildThumbs();
 
 					// Transition In the thumbsContainer
@@ -753,7 +882,9 @@
 						this.buildPager($bottomPager);
 				}
 
-				var page = this.getCurrentPage();
+                var page = 0;
+                if (this.currentImage !== null)
+				    var page = this.getCurrentPage();
 				var startIndex = page*this.numThumbs;
 				var stopIndex = startIndex+this.numThumbs-1;
 				if (stopIndex >= this.data.length)
@@ -774,7 +905,7 @@
 
 				// Remove the noscript class from the thumbs container ul
 				$thumbsUl.removeClass('noscript');
-				
+
 				return this;
 			},
 
@@ -791,7 +922,7 @@
 				var page = this.getCurrentPage();
 				var startIndex = page * this.numThumbs;
 				var pagesRemaining = this.maxPagesToShow - 1;
-				
+
 				var pageNum = page - Math.floor((this.maxPagesToShow - 1) / 2) + 1;
 				if (pageNum > 0) {
 					var remainingPageCount = numPages - pageNum;
@@ -807,7 +938,8 @@
 				// Prev Page Link
 				if (page > 0) {
 					var prevPage = startIndex - this.numThumbs;
-					pager.append('<a rel="history" href="#'+this.data[prevPage].hash+'" title="'+this.prevPageLinkText+'">'+this.prevPageLinkText+'</a>');
+					var html = this.prevPageLinkHTML ? this.prevPageLinkHTML : this.prevPageLinkText;
+					pager.append('<a rel="history" href="#'+this.data[prevPage].hash+'" title="'+this.prevPageLinkText+'">'+html+'</a>');
 				}
 
 				// Create First Page link if needed
@@ -815,7 +947,7 @@
 					this.buildPageLink(pager, 0, numPages);
 					if (pageNum > 1)
 						pager.append('<span class="ellipsis">&hellip;</span>');
-					
+
 					pagesRemaining--;
 				}
 
@@ -838,7 +970,8 @@
 				// Next Page Link
 				var nextPage = startIndex + this.numThumbs;
 				if (nextPage < this.data.length) {
-					pager.append('<a rel="history" href="#'+this.data[nextPage].hash+'" title="'+this.nextPageLinkText+'">'+this.nextPageLinkText+'</a>');
+					var html = this.nextPageLinkHTML ? this.nextPageLinkHTML : this.nextPageLinkText;
+					pager.append('<a rel="history" href="#'+this.data[nextPage].hash+'" title="'+this.nextPageLinkText+'">'+html+'</a>');
 				}
 
 				pager.find('a').click(function(e) {
@@ -861,18 +994,18 @@
 					var imageIndex = pageNum*this.numThumbs;
 					pager.append('<a rel="history" href="#'+this.data[imageIndex].hash+'" title="'+pageLabel+'">'+pageLabel+'</a>');
 				}
-				
+
 				return this;
 			}
 		});
 
 		// Now initialize the gallery
 		$.extend(this, defaults, settings);
-		
+
 		// Verify the history plugin is available
 		if (this.enableHistory && !$.history)
 			this.enableHistory = false;
-		
+
 		// Select containers
 		if (this.imageContainerSel) this.$imageContainer = $(this.imageContainerSel);
 		if (this.captionContainerSel) this.$captionContainer = $(this.captionContainerSel);
@@ -880,11 +1013,16 @@
 
 		// Initialize the thumbails
 		this.initializeThumbs();
-		
+
 		if (this.maxPagesToShow < 3)
 			this.maxPagesToShow = 3;
 
 		this.displayedPage = -1;
+        // if no initial images, then currentImage is null
+        if (this.data.length > 0)
+		    this.currentImage = this.data[0];
+        else
+            this.currentImage = null;
 		var gallery = this;
 
 		// Hide the loadingContainer
@@ -892,28 +1030,45 @@
 			this.$loadingContainer.hide();
 
 		// Setup controls
-		if (this.ssControlsContainerSel) {
-			this.$ssControlsContainer = $(this.ssControlsContainerSel).empty();
-			if (this.autoStart) {
-				this.$ssControlsContainer
-					.append('<div class="ss-controls"><a href="#pause" class="pause" title="'+this.pauseLinkText+'">'+this.pauseLinkText+'</a></div>');
-			} else {
-				this.$ssControlsContainer
-					.append('<div class="ss-controls"><a href="#play" class="play" title="'+this.playLinkText+'">'+this.playLinkText+'</a></div>');
-			}
-        
-			this.$ssControlsContainer.find('div.ss-controls a')
-				.click(function(e) {
-					gallery.toggleSlideshow();
-					e.preventDefault();
-					return false;
-				});
-		}
+		if (this.controlsSSContainerSel) {
+			this.$controlsSSContainer = $(this.controlsSSContainerSel).empty();
+
+				if (this.autoStart) {
+			  var html = this.pauseLinkHTML ? this.pauseLinkHTML : this.pauseLinkText;
+				this.$controlsSSContainer
+					.append('<div class="ss-controls"><a href="#pause" class="pause" title="'+this.pauseLinkText+'">'+html+'</a></div>');
+				} else {
+			var html = this.playLinkHTML ? this.playLinkHTML : this.playLinkText;
+				this.$controlsSSContainer
+					.append('<div class="ss-controls"><a href="#play" class="play" title="'+this.playLinkText+'">'+html+'</a></div>');
+				}
+
+			this.$controlsSSContainer.find('div.ss-controls a')
+					.click(function(e) {
+						gallery.toggleSlideshow();
+						e.preventDefault();
+						return false;
+					});
 		
-		if (this.navControlsContainerSel) {
-			this.$navControlsContainer = $(this.navControlsContainerSel).empty();
-			this.$navControlsContainer
-				.append('<div class="nav-controls"><a class="prev" rel="history" title="'+this.prevLinkText+'">'+this.prevLinkText+'</a><a class="next" rel="history" title="'+this.nextLinkText+'">'+this.nextLinkText+'</a></div>')
+			}
+
+		if (this.controlsPrevContainerSel) {
+			this.$controlsPrevContainer = $(this.controlsPrevContainerSel).empty();
+
+			var html = this.prevLinkHTML ? this.prevLinkHTML : this.prevLinkText;
+			this.$controlsPrevContainer
+				.append('<div class="nav-controls"><a class="prev" rel="history" title="'+this.prevLinkText+'">'+html+'</a></div>')
+					.find('div.nav-controls a')
+					.click(function(e) {
+						gallery.clickHandler(e, this);
+					});
+			}
+		if (this.controlsNextContainerSel) {
+			this.$controlsNextContainer = $(this.controlsNextContainerSel).empty();
+
+			var html = this.nextLinkHTML ? this.nextLinkHTML : this.nextLinkText;
+			this.$controlsNextContainer
+				.append('<div class="nav-controls"><a class="next" rel="history" title="'+this.nextLinkText+'">'+html+'</a></div>')
 				.find('div.nav-controls a')
 				.click(function(e) {
 					gallery.clickHandler(e, this);
@@ -930,13 +1085,13 @@
 
 		// Setup gallery to show the first image
 		if (initFirstImage)
-			this.gotoIndex(0, false, true);
+			this.gotoIndex(this.startImage, false, true);
 
 		// Setup Keyboard Navigation
 		if (this.enableKeyboardNavigation) {
 			$(document).keydown(function(e) {
 				var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
-				switch(key) {
+				switch (key) {
 					case 32: // space
 						gallery.next();
 						e.preventDefault();
@@ -950,7 +1105,7 @@
 						e.preventDefault();
 						break;
 					case 35: // End
-						gallery.gotoIndex(gallery.data.length-1);
+						gallery.gotoIndex(gallery.data.length - 1);
 						e.preventDefault();
 						break;
 					case 36: // Home
@@ -973,8 +1128,9 @@
 		if (this.autoStart)
 			this.play();
 
-		// Kickoff Image Preloader after 1 second
-		setTimeout(function() { gallery.preloadInit(); }, 1000);
+		// Kickoff Image Preloader after 600 milliseconds
+		setTimeout(function() { gallery.preloadInitThumbs(); gallery.preloadInit(); }, 600);
+
 
 		return this;
 	};
